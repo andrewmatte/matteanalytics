@@ -1,6 +1,7 @@
 fetch('https://matteanalytics.com/save_event', {
     method: "POST",
     body: JSON.stringify({
-        'event': window.location.href
+        'event': window.location.href,
+        'referrer': document.referrer
     })
 })

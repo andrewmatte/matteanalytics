@@ -20,16 +20,27 @@ async def save_event(request):
     except Exception as e:
         print(e)
         return JSONResponse({'error': 'missing json'})
+    
+    # get data from request
+    # event
     event = data.get('event')
     if not event:
         return JSONResponse({'error': 'missing event key'})
+
+    # host
     host = request['client'][0]
     h = hashlib.new('md5')
     h.update(bytes(host, 'utf8'))
     hashed_ip = h.hexdigest()
+
+    # referrer
+    referrer = str(data.get('referrer'))
+
+    # save
     f = open('analytics_dump.csv', 'a')
-    f.write(hashed_ip + ',' + str(event) + ',' + str(datetime.utcnow()) + '\n')
+    f.write(hashed_ip + ',' + str(event) + ',' + str(datetime.utcnow()) + ',' + referrer + '\n')
     f.close()
+
     return JSONResponse({'thanks': 'a lot'}, 200, CORS_headers)
 
 
