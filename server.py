@@ -28,7 +28,7 @@ async def save_event(request):
         return JSONResponse({'error': 'missing event key'})
 
     # host
-    host = request['client'][0]
+    host = request.headers.get('x-real-ip')
     h = hashlib.new('md5')
     h.update(bytes(host, 'utf8'))
     hashed_ip = h.hexdigest()
@@ -41,7 +41,7 @@ async def save_event(request):
     f.write(hashed_ip + ',' + str(event) + ',' + str(datetime.utcnow()) + ',' + referrer + '\n')
     f.close()
 
-    return JSONResponse({'thanks': 'a lot'}, 200, CORS_headers)
+    return JSONResponse({}, 200, CORS_headers)
 
 
 async def get_script(request):
