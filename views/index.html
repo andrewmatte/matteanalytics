@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matte Analytics</title>
+</head>
+<body>
+    <center>
+        <h1>Matte Analytics</h1>
+        <h2>Your analytics portal</h2>
+        <p>The aim of Matte Analytics is to help you grow your business by 
+            assisting in decisions while maintaining the privacy of your users.</p>
+        <br />
+        <h3>Sign Up for free</h3>
+        <form action="/signup" method="POST">
+            <input type="email" placeholder="email" name="email"><br />
+            <input type="password" placeholder="password" name="password"><br />
+            <input type="submit" value="SIGN UP">
+        </form>
+        <p>Sign Up for free, verify your site</p>
+    </center>
+    <script>
+        matteAnalyticsPing = () => {
+            fetch('/save_event', {
+                method: 'POST',
+                body: JSON.stringify({
+                    'event': window.location.href,
+                    'referrer': document.referrer
+                })
+            })
+        }; matteAnalyticsPing();
+
+        window.onpopstate = matteAnalyticsPing;
+        window.onpushstate = (a,b,c) => {output=window.onpushstate(a,b,c);matteAnalyticsPing();return output};
+    </script>
+</body>
+</html>

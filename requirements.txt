@@ -2,3 +2,5 @@ uvicorn
 starlette
 httptools
 uvloop
+jinja2
+python-multipart

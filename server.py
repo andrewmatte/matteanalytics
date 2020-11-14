@@ -1,16 +1,25 @@
 from datetime import datetime
-import hashlib
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
+from starlette.responses import RedirectResponse
 from starlette.routing import Route
 from starlette.responses import Response
+from starlette.templating import Jinja2Templates
+
+
+from transforms import events
+from transforms import signups
+from helpers import sessions
+from db import models
+from db import queries
 
 
 script = open('location.js').read()
 CORS_headers = {'Access-Control-Allow-Origin': '*'}
+templates = Jinja2Templates(directory='views')
 
 
-async def homepage(request):
+async def hello_analytics(request):
     return JSONResponse({'hello': 'analytics'})
 
 
@@ -21,24 +30,24 @@ async def save_event(request):
         print(e)
         return JSONResponse({'error': 'missing json'})
     
-    # get data from request
-    # event
-    event = data.get('event')
-    if not event:
-        return JSONResponse({'error': 'missing event key'})
-
-    # host
-    host = request.headers.get('x-real-ip')
-    h = hashlib.new('md5')
-    h.update(bytes(host, 'utf8'))
-    hashed_ip = h.hexdigest()
-
-    # referrer
-    referrer = str(data.get('referrer'))
+    try:
+        event = events.accept(data, request.headers)
+    except Exception as e:
+        print(e)
+        return JSONResponse({}, 400, CORS_headers)
 
     # save
+    try:
+        models.execute(queries.save_event, (
+            event['hashed_ip'],
+            event['event'],
+            event['referrer'],
+        ))
+    except Exception as e:
+        print(e)
+    
     f = open('analytics_dump.csv', 'a')
-    f.write(hashed_ip + ',' + str(event) + ',' + str(datetime.utcnow()) + ',' + referrer + '\n')
+    f.write(event['hashed_ip'] + ',' + str(event['event']) + ',' + str(datetime.utcnow()) + ',' + event['referrer'] + '\n')
     f.close()
 
     return JSONResponse({}, 200, CORS_headers)
@@ -53,9 +62,41 @@ async def data_dump(request):
     return Response(f)
 
 
+async def splash(request):
+    return templates.TemplateResponse('index.html', {'request': request})
+
+
+async def create_signup(request):
+    try:
+        data = await request.form()
+    except Exception as e:
+        print(e)
+        return JSONResponse({'error': 'missing form'})
+
+    signup = signups.accept(data)
+
+    try:
+        new_user = models.execute(queries.create_signup, (
+            signup['email'],
+            signup['salt'],
+            signup['passwd'],
+        ))
+    except:
+        new_user = []
+    
+    if len(new_user) == 0:
+        return RedirectResponse('/')
+    
+    new_session = sessions.create_session(new_user[0])
+
+    return templates.TemplateResponse('dashboard', {'request': request})
+
+
 app = Starlette(debug=True, routes=[
-    Route('/', homepage),
+    Route('/', hello_analytics),
     Route('/save_event', save_event, methods=["POST"]),
     Route('/script', get_script),
     Route('/data_dump', data_dump),
+    Route('/splash', splash),
+    Route('/signup', create_signup, methods=["POST"])
 ])
